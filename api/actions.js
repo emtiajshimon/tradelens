@@ -278,7 +278,8 @@ var Db = class {
   async writeBlob(table) {
     await put(this.blobPath(table), JSON.stringify(this.data[table]), {
       access: "private",
-      addRandomSuffix: false
+      addRandomSuffix: false,
+      allowOverwrite: true
     });
   }
   async writeFile(table) {
