@@ -1,1 +1,10 @@
-{"$schema":"https://openapi.vercel.sh/vercel.json","rewrites":[{"destination":"/api/actions","source":"/actions"}]}
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "destination": "/api/actions",
+      "source": "/actions"
+    }
+  ],
+  "buildCommand": "npm run build"
+}
