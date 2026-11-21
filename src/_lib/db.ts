@@ -454,9 +454,16 @@ export class Db {
   }
 
   private async writeBlob(table: TableName): Promise<void> {
+    // allowOverwrite is REQUIRED: every persist rewrites the whole table
+    // JSON to the same path. Without it, Vercel Blob rejects the second
+    // write to a path with "This blob already exists" — and a single
+    // generateSignal persists the settings table twice (signal counter,
+    // then guest usage), so even the first generate failed on Vercel
+    // while all local tests passed (local files overwrite freely).
     await put(this.blobPath(table), JSON.stringify(this.data[table]), {
       access: "private",
       addRandomSuffix: false,
+      allowOverwrite: true,
     });
   }
 
