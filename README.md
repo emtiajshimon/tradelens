@@ -78,7 +78,11 @@ https://vercel.com/shimon16/tradelens).
    requests. With the token, each table is one private JSON blob.
 3. Deploy. No other env vars are needed. No build step is required for the
    client (it is prebuilt in `public/`); the serverless function is
-   `api/actions.ts`.
+   `api/actions.ts`, which the build bundles with esbuild into a single
+   `api/actions.js` (`@vercel/blob` and `zod` kept external so Vercel's
+   runtime resolves them from node_modules) and then removes the `.ts`
+   source — Node ESM cannot resolve the extensionless relative imports
+   otherwise, and the function crashes with ERR_MODULE_NOT_FOUND.
 
 ## Local test
 
