@@ -88,6 +88,11 @@ https://vercel.com/shimon16/tradelens).
    in `src/` (never in `api/`) and be bundled — a plain `.ts` entry in
    `api/` crashes with ERR_MODULE_NOT_FOUND, and deleting it during the
    build breaks the build itself (Vercel re-reads the entry afterwards).
+   The Blob adapter's `put()` must pass `allowOverwrite: true`: every
+   persist rewrites a whole table to the same path, and without it the
+   second write fails with "This blob already exists" — a single
+   generateSignal persists the settings table twice, so even the first
+   generate failed on Vercel while local tests passed.
 
 ## Local test
 
