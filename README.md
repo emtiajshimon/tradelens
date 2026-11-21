@@ -22,9 +22,12 @@ vercel-tradelens/
   api/
     actions.ts             All 22 server actions, ported from server/src/actions.ts
                            (Hatch SDK stripped; zod schemas + handler logic identical)
-  server/
-    indicators.ts          Indicator math + backtest engine, copied verbatim
-    db.ts                  Persistence adapter replacing ctx.db()
+    _lib/
+      indicators.ts        Indicator math + backtest engine, copied verbatim
+      db.ts                Persistence adapter replacing ctx.db()
+                           (kept inside api/ so Vercel compiles it into the
+                           function bundle — files outside api/ are not
+                           resolvable at runtime)
   vercel.json              Rewrite /actions -> /api/actions
   package.json             deps: zod@4.4.3, @vercel/blob; dev: typescript, @types/node
   tsconfig.json
@@ -41,7 +44,7 @@ schema, and returns `{data}` on success or `{error}` on failure (always
 HTTP 200 for action errors, 405 for non-POST). Session tokens travel inside
 `args.token`, exactly as the client already sends them.
 
-**Persistence (`server/db.ts`):** a small Drizzle-subset adapter
+**Persistence (`api/_lib/db.ts`):** a small Drizzle-subset adapter
 (`select/insert/update/delete`, `eq/and/desc`, `.returning()`,
 `.orderBy()/.limit()`) over six JSON tables
 (accounts, journal_entries, usage_daily, settings, signal_history,
