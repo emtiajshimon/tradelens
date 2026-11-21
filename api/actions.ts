@@ -2,7 +2,7 @@
 //
 // Market data: Yahoo Finance public chart API, fetched SERVER-SIDE only
 // (the endpoint sends no CORS header, so browsers cannot call it directly).
-// All indicator math lives in ./indicators.ts and is shared by the signal
+// All indicator math lives in ./_lib/indicators.ts and is shared by the signal
 // generator, confluence, analyzers and backtest so every view agrees.
 //
 // Accounts are LOCAL demo accounts: salted SHA-256 password hashes in the
@@ -19,7 +19,7 @@ import {
   type AccountRow,
   type Ctx,
   type ManagementSheetRow,
-} from "../server/db";
+} from "./_lib/db";
 
 // Local stand-in for the Hatch SDK's defineAction: identity, but typed so
 // handler (ctx, args) get the same contextual types as in the original
@@ -49,7 +49,7 @@ runBacktest,
 simulatedCandles,
 stochasticAt,
 type Candle,
-} from "../server/indicators";
+} from "./_lib/indicators";
 
 // ---------- constants ----------
 
@@ -231,7 +231,7 @@ async function hashPassword(password: string, salt: string): Promise<string> {
     .join("");
 }
 
-// AccountRow / ManagementSheetRow come from ../server/db.
+// AccountRow / ManagementSheetRow come from ./_lib/db.
 
 async function accountByToken(ctx: Ctx, token: string): Promise<AccountRow | null> {
   if (!token) return null;
