@@ -314,6 +314,23 @@ function createCtx() {
 }
 
 // src/_lib/indicators.ts
+var CALIBRATION_BANDS = [
+  { min: 0, max: 49, observedWinRate: 50.2, sampleSize: 33906 },
+  { min: 50, max: 54, observedWinRate: 49.6, sampleSize: 3116 },
+  { min: 55, max: 59, observedWinRate: 50.1, sampleSize: 3590 },
+  { min: 60, max: 64, observedWinRate: 52.3, sampleSize: 4254 },
+  { min: 65, max: 69, observedWinRate: 51.4, sampleSize: 4536 },
+  { min: 70, max: 74, observedWinRate: 51.2, sampleSize: 2257 },
+  { min: 75, max: 79, observedWinRate: 52, sampleSize: 898 },
+  { min: 80, max: 84, observedWinRate: 50, sampleSize: 256 },
+  { min: 85, max: 100, observedWinRate: null, sampleSize: 58 }
+  // n < 100: not enough data
+];
+function calibrateConfidence(confidence) {
+  const band = CALIBRATION_BANDS.find((b) => confidence >= b.min && confidence <= b.max);
+  if (!band) return { observedWinRate: null, sampleSize: 0 };
+  return { observedWinRate: band.observedWinRate, sampleSize: band.sampleSize };
+}
 function sma(values, period, end) {
   if (end < period - 1) return null;
   let sum = 0;
@@ -576,7 +593,8 @@ function computeSignal(candles) {
   if (totalW === 0) confidence = 35;
   confidence = clamp(confidence, 5, 97);
   const risk = winVotes >= 3 && agreement >= 70 && confidence >= 65 ? "LOW" : agreement >= 45 && confidence >= 48 ? "MEDIUM" : "HIGH";
-  return { direction, confidence, agreement, risk, callVotes, putVotes, indicators: readings };
+  const { observedWinRate: calibratedWinRate, sampleSize: calibrationSample } = calibrateConfidence(confidence);
+  return { direction, confidence, agreement, risk, callVotes, putVotes, indicators: readings, calibratedWinRate, calibrationSample };
 }
 function latestIndicator(candles, id) {
   const end = candles.length - 1;
@@ -1125,7 +1143,12 @@ var signalShape = z.object({
   risk: z.enum(["LOW", "MEDIUM", "HIGH"]),
   callVotes: z.number(),
   putVotes: z.number(),
-  indicators: z.array(indicatorShape)
+  indicators: z.array(indicatorShape),
+  // Honest labelling: observed backtest win rate for this confidence band
+  // (frozen calibration, see CALIBRATION_BANDS in indicators.ts), null when
+  // the band has fewer than 100 decided trades.
+  calibratedWinRate: z.number().nullable(),
+  calibrationSample: z.number()
 });
 var btStatsShape = z.object({
   total: z.number(),
