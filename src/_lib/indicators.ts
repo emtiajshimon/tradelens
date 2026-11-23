@@ -24,12 +24,52 @@ export interface IndicatorReading {
 
 export interface SignalResult {
   direction: "CALL" | "PUT";
-  confidence: number; // 0..100
+  confidence: number; // 0..100 — indicator-agreement score, NOT a win probability
   agreement: number; // 0..100 share of non-neutral weight behind the verdict
   risk: "LOW" | "MEDIUM" | "HIGH";
   callVotes: number;
   putVotes: number;
   indicators: IndicatorReading[];
+  // Honest labelling: what this confidence band actually won in backtest.
+  calibratedWinRate: number | null; // observed win rate % for this confidence band, or null when n < 100
+  calibrationSample: number; // decided trades behind calibratedWinRate
+}
+
+// ---------- confidence calibration (measured, not assumed) ----------
+//
+// Frozen calibration map, measured 23 Nov 2026 from the deterministic
+// backtest harness (~/workspace/tradelens-signal-research/results/baseline.json):
+// 5M forex, 10 pairs, two 14-day windows (23 Oct–5 Nov and 6–20 Nov 2026),
+// 57,772 trades, 52,871 decided. Bands with fewer than 100 decided trades
+// are reported as "not enough data" instead of a rate.
+//
+// The curve is nearly flat: no band beats the 52.6% breakeven @ 90% payout,
+// and the 80+ band is WORSE than the 60-69 band — so the confidence number
+// is an agreement score, not a ranking of trade quality. Re-derive this map
+// (same harness, same windows) if the engine ever changes; do not hand-tune it.
+export interface CalibrationBand {
+  min: number; // inclusive lower bound of the confidence score
+  max: number; // inclusive upper bound
+  observedWinRate: number | null; // null = fewer than 100 decided trades in this band
+  sampleSize: number; // decided trades in this band
+}
+
+export const CALIBRATION_BANDS: CalibrationBand[] = [
+  { min: 0, max: 49, observedWinRate: 50.2, sampleSize: 33906 },
+  { min: 50, max: 54, observedWinRate: 49.6, sampleSize: 3116 },
+  { min: 55, max: 59, observedWinRate: 50.1, sampleSize: 3590 },
+  { min: 60, max: 64, observedWinRate: 52.3, sampleSize: 4254 },
+  { min: 65, max: 69, observedWinRate: 51.4, sampleSize: 4536 },
+  { min: 70, max: 74, observedWinRate: 51.2, sampleSize: 2257 },
+  { min: 75, max: 79, observedWinRate: 52.0, sampleSize: 898 },
+  { min: 80, max: 84, observedWinRate: 50.0, sampleSize: 256 },
+  { min: 85, max: 100, observedWinRate: null, sampleSize: 58 }, // n < 100: not enough data
+];
+
+export function calibrateConfidence(confidence: number): { observedWinRate: number | null; sampleSize: number } {
+  const band = CALIBRATION_BANDS.find((b) => confidence >= b.min && confidence <= b.max);
+  if (!band) return { observedWinRate: null, sampleSize: 0 };
+  return { observedWinRate: band.observedWinRate, sampleSize: band.sampleSize };
 }
 
 // ---------- helpers ----------
@@ -353,7 +393,8 @@ export function computeSignal(candles: Candle[]): SignalResult | null {
       : agreement >= 45 && confidence >= 48
         ? "MEDIUM"
         : "HIGH";
-  return { direction, confidence, agreement, risk, callVotes, putVotes, indicators: readings };
+  const { observedWinRate: calibratedWinRate, sampleSize: calibrationSample } = calibrateConfidence(confidence);
+  return { direction, confidence, agreement, risk, callVotes, putVotes, indicators: readings, calibratedWinRate, calibrationSample };
 }
 
 // Single-indicator reading at the latest bar (for the Analyzer views).
