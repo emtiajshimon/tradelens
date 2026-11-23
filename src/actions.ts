@@ -653,6 +653,11 @@ const signalShape = z.object({
   callVotes: z.number(),
   putVotes: z.number(),
   indicators: z.array(indicatorShape),
+  // Honest labelling: observed backtest win rate for this confidence band
+  // (frozen calibration, see CALIBRATION_BANDS in indicators.ts), null when
+  // the band has fewer than 100 decided trades.
+  calibratedWinRate: z.number().nullable(),
+  calibrationSample: z.number(),
 });
 
 const btStatsShape = z.object({
